@@ -3,6 +3,8 @@ import logging
 
 from groq import Groq
 
+from compatibility_analyzer.config import GROQ_MODEL, get_secret
+
 logger = logging.getLogger(__name__)
 
 # Approximate token budget for a single prompt.
@@ -37,12 +39,18 @@ def _strip_fences(text: str) -> str:
 class LLMClient:
     def __init__(
         self,
-        api_key: str,
-        model: str = "llama-3.3-70b-versatile",
+        api_key: str = None,
+        model: str = GROQ_MODEL,
     ):
+        api_key = api_key or get_secret("GROQ_API_KEY")
         if not api_key:
-            raise ValueError("Groq API key is required")
-        self.client = Groq(api_key=api_key)
+            raise ValueError("Missing required secret: GROQ_API_KEY")
+        try:
+            self.client = Groq(api_key=api_key)
+        except Exception as exc:
+            raise RuntimeError(
+                "Could not initialize the Groq client. Check GROQ_API_KEY."
+            ) from exc
         self.model = model
 
     def generate(self, prompt: str, temperature: float = 0.2) -> str:
@@ -55,12 +63,19 @@ class LLMClient:
                 PROMPT_TOKEN_BUDGET,
             )
 
-        completion = self.client.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=temperature,
-            max_tokens=MAX_COMPLETION_TOKENS,
-        )
+        try:
+            completion = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=temperature,
+                max_tokens=MAX_COMPLETION_TOKENS,
+            )
+        except Exception as exc:
+            logger.warning("Groq API request failed: %s", exc)
+            raise RuntimeError(
+                "Groq request failed. Verify GROQ_API_KEY, internet access, and "
+                "that the selected Groq model is available."
+            ) from exc
 
         logger.debug(
             "LLM usage — prompt: %d  completion: %d  total: %d",

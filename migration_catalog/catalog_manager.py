@@ -22,6 +22,8 @@ import logging
 from pathlib import Path
 from typing import Optional
 
+import streamlit as st
+
 logger = logging.getLogger(__name__)
 
 _CATALOG_DIR = Path(__file__).parent / "data"
@@ -61,7 +63,9 @@ def _normalize_system(name: str) -> str:
     return _SYSTEM_ALIASES.get(name.lower().strip(), name.lower().strip())
 
 
+@st.cache_data(show_spinner=False)
 def _load_catalog_data(source_system: str, target_system: str) -> Optional[dict]:
+    """Load static, credential-free migration catalog JSON for reuse."""
     key = (_normalize_system(source_system), _normalize_system(target_system))
     filename = _CATALOG_FILES.get(key)
     if not filename:

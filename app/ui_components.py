@@ -1,4 +1,3 @@
-import json
 import pandas as pd
 import streamlit as st
 
@@ -14,11 +13,6 @@ _SF_DOMAIN_LABELS = {
 
 
 def render_app_styles():
-    st.set_page_config(
-        page_title="ERP Migration Compatibility Analyzer",
-        page_icon="sync",
-        layout="wide",
-    )
     st.markdown(
         """
         <style>
@@ -55,7 +49,11 @@ def render_hero():
 
 
 def render_odoo_form(prefix):
-    st.text_input("Odoo URL", value="http://localhost:8019", key=f"{prefix}_odoo_url")
+    st.text_input(
+        "Odoo URL",
+        placeholder="https://your-odoo.example.com",
+        key=f"{prefix}_odoo_url",
+    )
     st.text_input("Database",  key=f"{prefix}_odoo_db")
     st.text_input("Username",  key=f"{prefix}_odoo_username")
     st.radio("Authentication Method", ["Password", "API Key"], key=f"{prefix}_odoo_auth_mode")
@@ -125,26 +123,7 @@ def render_sidebar():
         st.header("AI")
         st.text_input("Groq API Key", type="password", key="groq_api_key")
 
-        # ── Saved Credentials ──────────────────────────────────────────────
-        st.divider()
-        st.caption("Credentials are stored locally in `.credentials.json`")
-        col_save, col_clear = st.columns(2)
-        with col_save:
-            if st.button("Save Credentials", use_container_width=True, key="save_creds_btn"):
-                try:
-                    from compatibility_analyzer.utils.credentials import save_credentials
-                    save_credentials(st.session_state)
-                    st.success("Saved!")
-                except Exception as exc:
-                    st.error(str(exc))
-        with col_clear:
-            if st.button("Clear Saved", use_container_width=True, key="clear_creds_btn"):
-                try:
-                    from compatibility_analyzer.utils.credentials import clear_credentials
-                    clear_credentials()
-                    st.success("Cleared!")
-                except Exception as exc:
-                    st.error(str(exc))
+        st.caption("Credentials entered here remain in this browser session only.")
 
 
 def model_options(models):

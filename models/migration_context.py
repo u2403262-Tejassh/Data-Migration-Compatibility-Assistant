@@ -28,3 +28,4 @@ class MigrationContext:
     prediction: Optional[dict] = None
 
     compatibility: Optional[dict] = None
+    report_bytes: Optional[bytes] = None

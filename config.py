@@ -1,25 +1,37 @@
+"""Application configuration and secret lookup helpers."""
 
-GROQ_API_KEY = "GROQ_API_KEY"
+import os
+from pathlib import Path
+
+import streamlit as st
+from dotenv import load_dotenv
+
+
+# Load local development values without overriding environment-provided values.
+load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
+
+
+def get_secret(key, default=None):
+    """Read a setting from Streamlit secrets, the environment, or a default."""
+    try:
+        value = st.secrets.get(key)
+    except Exception:
+        # Streamlit raises when no secrets file/configuration is available.
+        value = None
+
+    if value not in (None, ""):
+        return value
+
+    return os.getenv(key, default)
+
+
 GROQ_MODEL = "llama-3.3-70b-versatile"
 GROQ_BASE_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-# ==========================================
-# ODOO CONFIG
-# ==========================================
-
-ODOO_URL = "http://localhost:8019"
-ODOO_DB = "odoo_dev"
-ODOO_USERNAME = "admin"
-ODOO_PASSWORD = "admin"
-
-# ==========================================
-# PROFILING CONFIG
-# ==========================================
-
+# Profiling configuration.
 MAX_SAMPLE_VALUES = 3
-OUTPUT_DIR = "output"
 
-# Filter noisy framework/internal models
+# Filter noisy framework/internal models.
 EXCLUDED_MODEL_PREFIXES = [
     "ir.",
     "mail.",
@@ -33,7 +45,7 @@ EXCLUDED_MODEL_PREFIXES = [
     "portal.",
 ]
 
-# Optional allowlist keywords for business relevance
+# Optional allowlist keywords for business relevance.
 BUSINESS_MODEL_HINTS = [
     "partner",
     "employee",

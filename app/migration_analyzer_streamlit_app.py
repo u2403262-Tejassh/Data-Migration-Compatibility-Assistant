@@ -1,13 +1,18 @@
-import streamlit as st
-import pandas as pd
+import hmac
+from pathlib import Path
 
+import pandas as pd
+import streamlit as st
+
+from compatibility_analyzer.config import get_secret
 from compatibility_analyzer.app.state_manager import (
     initialize_state,
     is_csv_source,
     is_same_erp,
+    reset_all_runtime_state,
 )
-
 from compatibility_analyzer.app.workflow_controller import (
+    MissingRequiredSecretError,
     initialize_connections,
     initialize_csv_source,
     prepare_erp_source,
@@ -17,8 +22,6 @@ from compatibility_analyzer.app.workflow_controller import (
     generate_pdf_report,
     update_selected_source_fields,
 )
-from compatibility_analyzer.app.state_manager import reset_all_runtime_state
-
 from compatibility_analyzer.app.ui_components import (
     render_app_styles,
     render_hero,
@@ -27,6 +30,39 @@ from compatibility_analyzer.app.ui_components import (
     render_source_sample,
 )
 
+
+st.set_page_config(
+    page_title="ERP Migration Compatibility Analyzer",
+    page_icon="sync",
+    layout="wide",
+)
+
+_app_password = get_secret("APP_PASSWORD")
+if _app_password:
+    st.caption("This deployment is password protected.")
+    submitted_password = st.text_input(
+        "Application password",
+        type="password",
+        key="_app_password_input",
+    )
+    if not hmac.compare_digest(
+        str(submitted_password or "").encode("utf-8"),
+        str(_app_password).encode("utf-8"),
+    ):
+        st.error("Enter the configured APP_PASSWORD to continue.")
+        st.stop()
+
+
+
+def _run_compatibility_analysis_safely():
+    try:
+        run_compatibility_analysis()
+    except Exception as exc:
+        st.error(f"Compatibility analysis failed. Check Groq and data-source connectivity. Details: {exc}")
+        st.stop()
+
+
+SAMPLE_SOURCE_PATH = Path(__file__).resolve().parent.parent / "sample_data" / "source.csv"
 
 render_app_styles()
 initialize_state()
@@ -45,8 +81,11 @@ if st.sidebar.button(
     try:
         initialize_connections()
         st.success("Connections initialized successfully.")
-    except Exception as exc:
+    except MissingRequiredSecretError as exc:
         st.error(str(exc))
+        st.stop()
+    except Exception as exc:
+        st.error(f"Connection setup failed. Check the configured credentials and network access. Details: {exc}")
 
 if st.sidebar.button(
     "Clear All Entities",
@@ -69,12 +108,21 @@ if is_csv_source():
             key="csv_upload",
         )
 
-        if uploaded:
+        use_sample = st.checkbox(
+            "Use bundled sample dataset",
+            key="use_sample_csv",
+            help="Loads sample_data/source.csv from the repository using a path relative to this app file.",
+        )
+
+        if uploaded or use_sample:
             if not st.session_state.source_connector:
 
                 try:
 
-                    initialize_csv_source(uploaded)
+                    initialize_csv_source(
+                        uploaded=uploaded,
+                        source_path=None if uploaded else SAMPLE_SOURCE_PATH,
+                    )
 
                     predict_target()
 
@@ -114,7 +162,7 @@ if is_csv_source():
                         ):
                             confirm_target(predicted)
 
-                            run_compatibility_analysis()
+                            _run_compatibility_analysis_safely()
 
                             st.rerun()
                     with c2:
@@ -131,7 +179,7 @@ if is_csv_source():
                         ):
                             confirm_target(manual_target)
 
-                            run_compatibility_analysis()
+                            _run_compatibility_analysis_safely()
 
                             st.rerun()
 
@@ -197,7 +245,7 @@ else:
                 if st.button("Analyze Compatibility", key="same_erp_analyze_btn"):
                     try:
                         confirm_target(same_erp_target)
-                        run_compatibility_analysis()
+                        _run_compatibility_analysis_safely()
                         st.rerun()
                     except Exception as exc:
                         st.error(str(exc))
@@ -238,7 +286,7 @@ else:
                         ):
                             confirm_target(predicted)
 
-                            run_compatibility_analysis()
+                            _run_compatibility_analysis_safely()
 
                             st.rerun()
 
@@ -256,7 +304,7 @@ else:
                         ):
                             confirm_target(manual_target)
 
-                            run_compatibility_analysis()
+                            _run_compatibility_analysis_safely()
 
                             st.rerun()
 
@@ -485,7 +533,7 @@ if st.session_state.compatibility:
                         suggested = [m["source_field"] for m in mappings]
                         try:
                             update_selected_source_fields(suggested)
-                            run_compatibility_analysis()
+                            _run_compatibility_analysis_safely()
                             st.success(
                                 f"Re-ran analysis with {len(suggested)} suggested field(s)."
                             )
@@ -679,22 +727,12 @@ if st.session_state.compatibility:
                     str(exc)
                 )
 
-        if getattr(
-            st.session_state,
-            "report_path",
-            None,
-        ):
-
-            report_path = st.session_state.report_path
-
-            if report_path:
-                with open(report_path, "rb") as f:
-                    pdf_bytes = f.read()
-
-                st.download_button(
-                    label="Download Report",
-                    data=pdf_bytes,
-                    file_name="migration_report.pdf",
-                    mime="application/pdf",
-                    key="download_report_btn",
-                )
+        report_bytes = st.session_state.report_bytes
+        if report_bytes:
+            st.download_button(
+                label="Download Report",
+                data=report_bytes,
+                file_name="migration_report.pdf",
+                mime="application/pdf",
+                key="download_report_btn",
+            )

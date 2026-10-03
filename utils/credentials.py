@@ -1,94 +1,37 @@
+"""Secret lookup helpers and session-state defaults.
+
+Credentials are sourced from Streamlit secrets or environment variables and
+kept in the user's Streamlit session. This module intentionally does not read
+or write credential files.
 """
-utils/credentials.py
 
-Saves and loads connection credentials to/from .credentials.json
-in the working directory. Passwords are stored in plain text —
-this is intended for local development use only.
-"""
+from compatibility_analyzer.config import get_secret as _get_secret
 
-import json
-import logging
-from pathlib import Path
 
-logger = logging.getLogger(__name__)
-
-CREDENTIALS_FILE = Path(".credentials.json")
-
-# Every session-state key that holds a credential value.
-# These map 1:1 to the keys used in ui_components.py form fields.
-CREDENTIAL_KEYS = [
-    # Systems
-    "source_system",
-    "target_system",
-    # Odoo — source
-    "source_odoo_url",
-    "source_odoo_db",
-    "source_odoo_username",
-    "source_odoo_password",
-    "source_odoo_auth_mode",
-    # Odoo — target
-    "target_odoo_url",
-    "target_odoo_db",
-    "target_odoo_username",
-    "target_odoo_password",
-    "target_odoo_auth_mode",
-    # Salesforce — source
-    "source_salesforce_username",
-    "source_salesforce_password",
-    "source_salesforce_token",
-    "source_salesforce_domain",
-    "source_salesforce_custom_domain",
-    # Salesforce — target
-    "target_salesforce_username",
-    "target_salesforce_password",
-    "target_salesforce_token",
-    "target_salesforce_domain",
-    "target_salesforce_custom_domain",
-    # Oracle — source
-    "source_oracle_url",
-    "source_oracle_username",
-    "source_oracle_password",
-    # Oracle — target
-    "target_oracle_url",
-    "target_oracle_username",
-    "target_oracle_password",
-    # AI
-    "groq_api_key",
-]
+def get_secret(key, default=None):
+    """Read a setting from Streamlit secrets, the environment, or a default."""
+    return _get_secret(key, default)
 
 
 def load_credentials() -> dict:
-    """Return saved credentials dict, or {} if file does not exist."""
-    if not CREDENTIALS_FILE.exists():
-        return {}
-    try:
-        with open(CREDENTIALS_FILE) as f:
-            data = json.load(f)
-        logger.debug("Credentials loaded from %s", CREDENTIALS_FILE)
-        return data
-    except Exception as exc:
-        logger.warning("Could not load credentials: %s", exc)
-        return {}
+    """Return configured Groq/Salesforce credentials for session initialization."""
+    credentials = {}
+    secret_keys = {
+        "groq_api_key": "GROQ_API_KEY",
+    }
 
+    for prefix in ("source", "target"):
+        secret_keys.update({
+            f"{prefix}_salesforce_username": "SALESFORCE_USERNAME",
+            f"{prefix}_salesforce_password": "SALESFORCE_PASSWORD",
+            f"{prefix}_salesforce_token": "SALESFORCE_SECURITY_TOKEN",
+            f"{prefix}_salesforce_domain": "SALESFORCE_DOMAIN",
+        })
 
-def save_credentials(session_state) -> None:
-    """Write non-empty credential keys from session_state to .credentials.json."""
-    data = {}
-    for key in CREDENTIAL_KEYS:
-        val = session_state.get(key)
-        if val not in (None, "", [], False):
-            data[key] = val
-    try:
-        with open(CREDENTIALS_FILE, "w") as f:
-            json.dump(data, f, indent=2)
-        logger.info("Credentials saved to %s", CREDENTIALS_FILE)
-    except Exception as exc:
-        logger.error("Could not save credentials: %s", exc)
-        raise
+    for session_key, secret_key in secret_keys.items():
+        default = "login" if secret_key == "SALESFORCE_DOMAIN" else None
+        value = get_secret(secret_key, default)
+        if value not in (None, ""):
+            credentials[session_key] = value
 
-
-def clear_credentials() -> None:
-    """Delete the credentials file."""
-    if CREDENTIALS_FILE.exists():
-        CREDENTIALS_FILE.unlink()
-        logger.info("Credentials file deleted.")
+    return credentials
