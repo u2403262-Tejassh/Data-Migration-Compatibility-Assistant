@@ -1,0 +1,550 @@
+{
+  "meta": {
+    "source_system": "oracle",
+    "target_system": "odoo",
+    "version": "1.0",
+    "description": "Curated migration-relevant entities and fields for Oracle Fusion to Odoo migrations. Oracle field names are based on standard Oracle CX/FSCM/HCM REST API field names (v1). Tenant-specific flex fields (DFF/EFF) are excluded — add them as custom fields in practice.",
+    "assumptions": [
+      "Oracle CRM field names follow PascalCase as returned by the REST API (e.g. PartyName, AccountName).",
+      "Oracle FSCM Invoices use the /receivablesInvoices and /payablesInvoices REST resource field names.",
+      "Oracle HCM Workers use the /workers REST resource field names.",
+      "Odoo target field names are standard Odoo 16/17 community field names.",
+      "Supplier and Customer both map to res.partner with different rank values — filtering is handled at connector level.",
+      "Oracle Accounts (CRM) = companies → res.partner with is_company=True.",
+      "Oracle Contacts (CRM) = persons → res.partner with is_company=False."
+    ]
+  },
+  "entities": [
+    {
+      "source_model": "accounts",
+      "source_name": "CRM Account",
+      "target_model": "res.partner",
+      "target_name": "Company",
+      "notes": "Oracle CRM Account maps to Odoo res.partner with is_company=True. Module: crm.",
+      "fields": {
+        "AccountName": {
+          "target": "name",
+          "confidence": 1.0
+        },
+        "PartyNumber": {
+          "target": "ref",
+          "confidence": 0.8,
+          "notes": "Oracle party number used as internal reference"
+        },
+        "Type": {
+          "target": "company_type",
+          "confidence": 0.6,
+          "notes": "Account type classification; map values manually"
+        },
+        "IndustryCode": {
+          "target": "industry_id",
+          "confidence": 0.7,
+          "notes": "Industry classification code; map to Odoo industry"
+        },
+        "PrimaryPhoneNumber": {
+          "target": "phone",
+          "confidence": 1.0
+        },
+        "PrimaryEmailAddress": {
+          "target": "email",
+          "confidence": 1.0
+        },
+        "WebSiteURL": {
+          "target": "website",
+          "confidence": 1.0
+        },
+        "AddressLine1": {
+          "target": "street",
+          "confidence": 1.0
+        },
+        "AddressLine2": {
+          "target": "street2",
+          "confidence": 1.0
+        },
+        "City": {
+          "target": "city",
+          "confidence": 1.0
+        },
+        "PostalCode": {
+          "target": "zip",
+          "confidence": 1.0
+        },
+        "State": {
+          "target": "state_id",
+          "confidence": 0.9
+        },
+        "Country": {
+          "target": "country_id",
+          "confidence": 0.9
+        },
+        "Description": {
+          "target": "comment",
+          "confidence": 0.9
+        },
+        "NumberOfEmployees": {
+          "target": "employee",
+          "confidence": 0.8
+        },
+        "AnnualRevenue": {
+          "target": "credit_limit",
+          "confidence": 0.5,
+          "notes": "No direct Odoo equivalent; credit_limit is closest financial field"
+        },
+        "CurrencyCode": {
+          "target": "property_purchase_currency_id",
+          "confidence": 0.5,
+          "notes": "Currency preference; maps to partner currency property"
+        },
+        "SalesforceId": {
+          "target": "x_oracle_id",
+          "confidence": 0.6,
+          "notes": "External ID for cross-reference; store in custom field"
+        }
+      }
+    },
+    {
+      "source_model": "contacts",
+      "source_name": "CRM Contact",
+      "target_model": "res.partner",
+      "target_name": "Contact",
+      "notes": "Oracle CRM Contact maps to Odoo res.partner with is_company=False. Module: crm.",
+      "fields": {
+        "FirstName": {
+          "target": "firstname",
+          "confidence": 1.0
+        },
+        "LastName": {
+          "target": "lastname",
+          "confidence": 1.0
+        },
+        "MiddleName": {
+          "target": "firstname",
+          "confidence": 0.5,
+          "notes": "Odoo has no separate middle name; consider appending to firstname"
+        },
+        "Salutation": {
+          "target": "title",
+          "confidence": 0.8
+        },
+        "JobTitle": {
+          "target": "function",
+          "confidence": 1.0
+        },
+        "Department": {
+          "target": "department",
+          "confidence": 0.8
+        },
+        "PrimaryPhoneNumber": {
+          "target": "phone",
+          "confidence": 1.0
+        },
+        "MobileNumber": {
+          "target": "mobile",
+          "confidence": 1.0
+        },
+        "PrimaryEmailAddress": {
+          "target": "email",
+          "confidence": 1.0
+        },
+        "AddressLine1": {
+          "target": "street",
+          "confidence": 1.0
+        },
+        "AddressLine2": {
+          "target": "street2",
+          "confidence": 1.0
+        },
+        "City": {
+          "target": "city",
+          "confidence": 1.0
+        },
+        "PostalCode": {
+          "target": "zip",
+          "confidence": 1.0
+        },
+        "State": {
+          "target": "state_id",
+          "confidence": 0.9
+        },
+        "Country": {
+          "target": "country_id",
+          "confidence": 0.9
+        },
+        "AccountName": {
+          "target": "parent_id",
+          "confidence": 0.7,
+          "notes": "Link to parent company by name lookup"
+        },
+        "DoNotContact": {
+          "target": "active",
+          "confidence": 0.6,
+          "notes": "Inverted: DoNotContact=True → active=False"
+        },
+        "PreferredLanguage": {
+          "target": "lang",
+          "confidence": 0.8
+        }
+      }
+    },
+    {
+      "source_model": "customers",
+      "source_name": "FSCM Customer",
+      "target_model": "res.partner",
+      "target_name": "Customer",
+      "notes": "Oracle FSCM AR Customer. Maps to res.partner with customer_rank > 0. Module: fscm.",
+      "fields": {
+        "CustomerName": {
+          "target": "name",
+          "confidence": 1.0
+        },
+        "CustomerNumber": {
+          "target": "ref",
+          "confidence": 0.9
+        },
+        "AccountNumber": {
+          "target": "ref",
+          "confidence": 0.9
+        },
+        "TaxRegistrationNumber": {
+          "target": "vat",
+          "confidence": 0.9
+        },
+        "PrimaryPhoneNumber": {
+          "target": "phone",
+          "confidence": 1.0
+        },
+        "PrimaryEmailAddress": {
+          "target": "email",
+          "confidence": 1.0
+        },
+        "AddressLine1": {
+          "target": "street",
+          "confidence": 1.0
+        },
+        "AddressLine2": {
+          "target": "street2",
+          "confidence": 1.0
+        },
+        "City": {
+          "target": "city",
+          "confidence": 1.0
+        },
+        "PostalCode": {
+          "target": "zip",
+          "confidence": 1.0
+        },
+        "State": {
+          "target": "state_id",
+          "confidence": 0.9
+        },
+        "Country": {
+          "target": "country_id",
+          "confidence": 0.9
+        },
+        "CurrencyCode": {
+          "target": "property_purchase_currency_id",
+          "confidence": 0.6
+        },
+        "PaymentTerms": {
+          "target": "property_payment_term_id",
+          "confidence": 0.8
+        },
+        "CreditLimit": {
+          "target": "credit_limit",
+          "confidence": 0.9
+        },
+        "CustomerType": {
+          "target": "company_type",
+          "confidence": 0.6
+        },
+        "Status": {
+          "target": "active",
+          "confidence": 0.7,
+          "notes": "Map Active/Inactive to True/False"
+        }
+      }
+    },
+    {
+      "source_model": "suppliers",
+      "source_name": "FSCM Supplier",
+      "target_model": "res.partner",
+      "target_name": "Supplier",
+      "notes": "Oracle FSCM AP Supplier. Maps to res.partner with supplier_rank > 0. Module: fscm.",
+      "fields": {
+        "SupplierName": {
+          "target": "name",
+          "confidence": 1.0
+        },
+        "SupplierNumber": {
+          "target": "ref",
+          "confidence": 0.9
+        },
+        "TaxRegistrationNumber": {
+          "target": "vat",
+          "confidence": 0.9
+        },
+        "TaxOrganizationType": {
+          "target": "company_type",
+          "confidence": 0.6
+        },
+        "PrimaryPhoneNumber": {
+          "target": "phone",
+          "confidence": 1.0
+        },
+        "PrimaryEmailAddress": {
+          "target": "email",
+          "confidence": 1.0
+        },
+        "WebSiteURL": {
+          "target": "website",
+          "confidence": 1.0
+        },
+        "AddressLine1": {
+          "target": "street",
+          "confidence": 1.0
+        },
+        "AddressLine2": {
+          "target": "street2",
+          "confidence": 1.0
+        },
+        "City": {
+          "target": "city",
+          "confidence": 1.0
+        },
+        "PostalCode": {
+          "target": "zip",
+          "confidence": 1.0
+        },
+        "State": {
+          "target": "state_id",
+          "confidence": 0.9
+        },
+        "Country": {
+          "target": "country_id",
+          "confidence": 0.9
+        },
+        "PaymentTerms": {
+          "target": "property_supplier_payment_term_id",
+          "confidence": 0.8
+        },
+        "CurrencyCode": {
+          "target": "property_purchase_currency_id",
+          "confidence": 0.6
+        },
+        "Status": {
+          "target": "active",
+          "confidence": 0.7
+        },
+        "AlternateName": {
+          "target": "company_name",
+          "confidence": 0.6
+        }
+      }
+    },
+    {
+      "source_model": "invoices",
+      "source_name": "FSCM Invoice",
+      "target_model": "account.move",
+      "target_name": "Invoice",
+      "notes": "Oracle FSCM covers both AR (receivables) and AP (payables) invoices. Both map to account.move in Odoo; move_type distinguishes them (out_invoice vs in_invoice). Module: fscm.",
+      "fields": {
+        "InvoiceNumber": {
+          "target": "name",
+          "confidence": 0.9
+        },
+        "InvoiceDate": {
+          "target": "invoice_date",
+          "confidence": 1.0
+        },
+        "DueDate": {
+          "target": "invoice_date_due",
+          "confidence": 1.0
+        },
+        "InvoiceAmount": {
+          "target": "amount_total",
+          "confidence": 0.9
+        },
+        "TaxAmount": {
+          "target": "amount_tax",
+          "confidence": 0.9
+        },
+        "InvoiceCurrencyCode": {
+          "target": "currency_id",
+          "confidence": 0.9
+        },
+        "PaymentTerms": {
+          "target": "invoice_payment_term_id",
+          "confidence": 0.8
+        },
+        "SupplierName": {
+          "target": "partner_id",
+          "confidence": 0.8,
+          "notes": "Look up by name to get partner_id"
+        },
+        "CustomerName": {
+          "target": "partner_id",
+          "confidence": 0.8,
+          "notes": "Look up by name to get partner_id"
+        },
+        "Description": {
+          "target": "narration",
+          "confidence": 0.8
+        },
+        "PONumber": {
+          "target": "ref",
+          "confidence": 0.8
+        },
+        "Status": {
+          "target": "state",
+          "confidence": 0.7,
+          "notes": "Map Oracle status (Approved/Paid/Cancelled) to Odoo state (draft/posted/cancel)"
+        },
+        "GrossAmount": {
+          "target": "amount_untaxed",
+          "confidence": 0.8
+        },
+        "PaymentMethod": {
+          "target": "invoice_payment_term_id",
+          "confidence": 0.5
+        }
+      }
+    },
+    {
+      "source_model": "workers",
+      "source_name": "HCM Worker",
+      "target_model": "hr.employee",
+      "target_name": "Employee",
+      "notes": "Oracle HCM Worker resource. Covers both employees and contingent workers. Module: hcm.",
+      "fields": {
+        "DisplayName": {
+          "target": "name",
+          "confidence": 1.0
+        },
+        "PersonNumber": {
+          "target": "employee_number",
+          "confidence": 0.9
+        },
+        "FirstName": {
+          "target": "name",
+          "confidence": 0.8,
+          "notes": "Combine with LastName to build full name"
+        },
+        "LastName": {
+          "target": "name",
+          "confidence": 0.8,
+          "notes": "Combine with FirstName to build full name"
+        },
+        "WorkEmail": {
+          "target": "work_email",
+          "confidence": 1.0
+        },
+        "PersonalEmail": {
+          "target": "private_email",
+          "confidence": 0.9
+        },
+        "WorkPhoneNumber": {
+          "target": "work_phone",
+          "confidence": 1.0
+        },
+        "MobilePhoneNumber": {
+          "target": "mobile_phone",
+          "confidence": 1.0
+        },
+        "JobTitle": {
+          "target": "job_title",
+          "confidence": 1.0
+        },
+        "JobCode": {
+          "target": "job_id",
+          "confidence": 0.7
+        },
+        "DepartmentName": {
+          "target": "department_id",
+          "confidence": 0.9
+        },
+        "ManagerDisplayName": {
+          "target": "parent_id",
+          "confidence": 0.7,
+          "notes": "Look up manager by name to get hr.employee id"
+        },
+        "HireDate": {
+          "target": "date_start",
+          "confidence": 1.0,
+          "notes": "Maps to contract start date or hr.contract date_start"
+        },
+        "TerminationDate": {
+          "target": "departure_date",
+          "confidence": 0.9
+        },
+        "WorkerType": {
+          "target": "employee_type",
+          "confidence": 0.7,
+          "notes": "Employee/Contractor mapping"
+        },
+        "DateOfBirth": {
+          "target": "birthday",
+          "confidence": 1.0
+        },
+        "NationalIdValue": {
+          "target": "ssnid",
+          "confidence": 0.7,
+          "notes": "National ID / SSN; check local privacy rules before migrating"
+        },
+        "Gender": {
+          "target": "gender",
+          "confidence": 0.8
+        },
+        "MaritalStatus": {
+          "target": "marital",
+          "confidence": 0.8
+        },
+        "Nationality": {
+          "target": "country_id",
+          "confidence": 0.7
+        },
+        "LocationName": {
+          "target": "work_location_id",
+          "confidence": 0.7
+        }
+      }
+    },
+    {
+      "source_model": "departments",
+      "source_name": "HCM Department",
+      "target_model": "hr.department",
+      "target_name": "Department",
+      "notes": "Oracle HCM Department resource. Module: hcm.",
+      "fields": {
+        "DepartmentName": {
+          "target": "name",
+          "confidence": 1.0
+        },
+        "DepartmentNumber": {
+          "target": "complete_name",
+          "confidence": 0.5,
+          "notes": "No direct Odoo equivalent; store in name or custom field"
+        },
+        "ManagerDisplayName": {
+          "target": "manager_id",
+          "confidence": 0.8,
+          "notes": "Look up manager by name to get hr.employee id"
+        },
+        "BusinessUnitName": {
+          "target": "company_id",
+          "confidence": 0.6,
+          "notes": "Map Oracle BU to Odoo company if multi-company setup"
+        },
+        "Status": {
+          "target": "active",
+          "confidence": 0.7,
+          "notes": "Map Active/Inactive to True/False"
+        },
+        "ParentDepartmentName": {
+          "target": "parent_id",
+          "confidence": 0.8,
+          "notes": "Look up parent department by name"
+        }
+      }
+    }
+  ]
+}

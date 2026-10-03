@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "source_system": "oracle",
+    "target_system": "salesforce",
+    "version": "1.0"
+  },
+  "entities": [
+    {
+      "source_model": "accounts",
+      "target_model": "Account",
+      "fields": {
+        "OrganizationName": { "target": "Name", "confidence": 1.0 },
+        "PartyNumber": { "target": "AccountNumber", "confidence": 0.9 },
+        "PhoneNumber": { "target": "Phone", "confidence": 1.0 },
+        "EmailAddress": { "target": "PersonEmail", "confidence": 0.8 },
+        "URL": { "target": "Website", "confidence": 1.0 },
+        "IndustryCode": { "target": "Industry", "confidence": 0.8 },
+        "EmployeesTotal": { "target": "NumberOfEmployees", "confidence": 0.9 },
+        "Description": { "target": "Description", "confidence": 1.0 },
+        "AddressLine1": { "target": "BillingStreet", "confidence": 1.0 },
+        "City": { "target": "BillingCity", "confidence": 1.0 },
+        "State": { "target": "BillingState", "confidence": 1.0 },
+        "PostalCode": { "target": "BillingPostalCode", "confidence": 1.0 },
+        "Country": { "target": "BillingCountry", "confidence": 1.0 }
+      }
+    },
+    {
+      "source_model": "contacts",
+      "target_model": "Contact",
+      "fields": {
+        "FirstName": { "target": "FirstName", "confidence": 1.0 },
+        "LastName": { "target": "LastName", "confidence": 1.0 },
+        "EmailAddress": { "target": "Email", "confidence": 1.0 },
+        "MobileNumber": { "target": "MobilePhone", "confidence": 1.0 },
+        "WorkPhoneNumber": { "target": "Phone", "confidence": 0.9 },
+        "JobTitle": { "target": "Title", "confidence": 1.0 },
+        "Department": { "target": "Department", "confidence": 1.0 },
+        "AccountName": { "target": "AccountId", "confidence": 0.8 },
+        "AddressLine1": { "target": "MailingStreet", "confidence": 1.0 },
+        "City": { "target": "MailingCity", "confidence": 1.0 },
+        "State": { "target": "MailingState", "confidence": 1.0 },
+        "PostalCode": { "target": "MailingPostalCode", "confidence": 1.0 },
+        "Country": { "target": "MailingCountry", "confidence": 1.0 }
+      }
+    },
+    {
+      "source_model": "suppliers",
+      "target_model": "Account",
+      "fields": {
+        "Supplier": { "target": "Name", "confidence": 1.0 },
+        "SupplierNumber": { "target": "AccountNumber", "confidence": 0.9 },
+        "CorporateWebsite": { "target": "Website", "confidence": 1.0 },
+        "TaxRegistrationNumber": { "target": "Tax_ID__c", "confidence": 0.7 },
+        "PrincipalName": { "target": "Owner_Name__c", "confidence": 0.6 }
+      }
+    },
+    {
+      "source_model": "workers",
+      "target_model": "User",
+      "fields": {
+        "DisplayName": { "target": "Name", "confidence": 1.0 },
+        "PersonNumber": { "target": "EmployeeNumber", "confidence": 0.9 },
+        "DateOfBirth": { "target": "Birthdate", "confidence": 0.8 }
+      }
+    }
+  ]
+}

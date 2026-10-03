@@ -1,0 +1,426 @@
+{
+  "meta": {
+    "source_system": "odoo",
+    "target_system": "oracle",
+    "version": "1.0",
+    "description": "Curated migration-relevant entities and fields for Odoo to Oracle Fusion migrations. Oracle target field names follow the standard Oracle REST API PascalCase conventions. Odoo source fields are standard Odoo 16/17 community field names.",
+    "assumptions": [
+      "Oracle CRM target fields follow PascalCase as consumed by the REST API (e.g. PartyName, AccountName).",
+      "Oracle FSCM Invoices use the /receivablesInvoices and /payablesInvoices REST resource field names.",
+      "Oracle HCM Workers use the /workers REST resource field names.",
+      "Odoo res.partner covers both contacts (is_company=False) and companies (is_company=True).",
+      "Supplier and Customer both map to Oracle res.partner equivalents with different classifications.",
+      "account.move in Odoo maps to Oracle FSCM Invoices; move_type distinguishes AR vs AP.",
+      "hr.employee maps to Oracle HCM Worker resource."
+    ]
+  },
+  "entities": [
+    {
+      "source_model": "res.partner",
+      "source_name": "Company",
+      "target_model": "accounts",
+      "target_name": "CRM Account",
+      "notes": "Odoo res.partner with is_company=True maps to Oracle CRM Account. Module: crm.",
+      "fields": {
+        "name": {
+          "target": "AccountName",
+          "confidence": 1.0
+        },
+        "ref": {
+          "target": "PartyNumber",
+          "confidence": 0.8,
+          "notes": "Odoo internal reference → Oracle party number"
+        },
+        "phone": {
+          "target": "PrimaryPhoneNumber",
+          "confidence": 1.0
+        },
+        "email": {
+          "target": "PrimaryEmailAddress",
+          "confidence": 1.0
+        },
+        "website": {
+          "target": "WebSiteURL",
+          "confidence": 1.0
+        },
+        "street": {
+          "target": "AddressLine1",
+          "confidence": 1.0
+        },
+        "street2": {
+          "target": "AddressLine2",
+          "confidence": 1.0
+        },
+        "city": {
+          "target": "City",
+          "confidence": 1.0
+        },
+        "zip": {
+          "target": "PostalCode",
+          "confidence": 1.0
+        },
+        "state_id": {
+          "target": "State",
+          "confidence": 0.9,
+          "notes": "Odoo many2one to res.country.state; map to Oracle state abbreviation"
+        },
+        "country_id": {
+          "target": "Country",
+          "confidence": 0.9,
+          "notes": "Odoo many2one to res.country; map to ISO country code"
+        },
+        "comment": {
+          "target": "Description",
+          "confidence": 0.9
+        },
+        "industry_id": {
+          "target": "IndustryCode",
+          "confidence": 0.7,
+          "notes": "Odoo many2one to res.partner.industry; map to Oracle industry code"
+        },
+        "employee": {
+          "target": "NumberOfEmployees",
+          "confidence": 0.8
+        },
+        "credit_limit": {
+          "target": "AnnualRevenue",
+          "confidence": 0.5,
+          "notes": "No direct equivalent; closest Oracle financial field"
+        }
+      }
+    },
+    {
+      "source_model": "res.partner",
+      "source_name": "Contact",
+      "target_model": "contacts",
+      "target_name": "CRM Contact",
+      "notes": "Odoo res.partner with is_company=False maps to Oracle CRM Contact. Module: crm.",
+      "fields": {
+        "firstname": {
+          "target": "FirstName",
+          "confidence": 1.0
+        },
+        "lastname": {
+          "target": "LastName",
+          "confidence": 1.0
+        },
+        "title": {
+          "target": "Salutation",
+          "confidence": 0.8,
+          "notes": "Odoo many2one to res.partner.title; map values"
+        },
+        "function": {
+          "target": "JobTitle",
+          "confidence": 1.0
+        },
+        "phone": {
+          "target": "PrimaryPhoneNumber",
+          "confidence": 1.0
+        },
+        "mobile": {
+          "target": "MobileNumber",
+          "confidence": 1.0
+        },
+        "email": {
+          "target": "PrimaryEmailAddress",
+          "confidence": 1.0
+        },
+        "street": {
+          "target": "AddressLine1",
+          "confidence": 1.0
+        },
+        "street2": {
+          "target": "AddressLine2",
+          "confidence": 1.0
+        },
+        "city": {
+          "target": "City",
+          "confidence": 1.0
+        },
+        "zip": {
+          "target": "PostalCode",
+          "confidence": 1.0
+        },
+        "state_id": {
+          "target": "State",
+          "confidence": 0.9
+        },
+        "country_id": {
+          "target": "Country",
+          "confidence": 0.9
+        },
+        "lang": {
+          "target": "PreferredLanguage",
+          "confidence": 0.8
+        },
+        "active": {
+          "target": "DoNotContact",
+          "confidence": 0.6,
+          "notes": "Inverted: active=False → DoNotContact=True"
+        },
+        "parent_id": {
+          "target": "AccountName",
+          "confidence": 0.7,
+          "notes": "Link to parent Oracle Account by name"
+        }
+      }
+    },
+    {
+      "source_model": "res.partner",
+      "source_name": "Supplier",
+      "target_model": "suppliers",
+      "target_name": "FSCM Supplier",
+      "notes": "Odoo res.partner with supplier_rank > 0 maps to Oracle FSCM AP Supplier. Module: fscm.",
+      "fields": {
+        "name": {
+          "target": "SupplierName",
+          "confidence": 1.0
+        },
+        "ref": {
+          "target": "SupplierNumber",
+          "confidence": 0.9
+        },
+        "vat": {
+          "target": "TaxRegistrationNumber",
+          "confidence": 0.9
+        },
+        "phone": {
+          "target": "PrimaryPhoneNumber",
+          "confidence": 1.0
+        },
+        "email": {
+          "target": "PrimaryEmailAddress",
+          "confidence": 1.0
+        },
+        "website": {
+          "target": "WebSiteURL",
+          "confidence": 1.0
+        },
+        "street": {
+          "target": "AddressLine1",
+          "confidence": 1.0
+        },
+        "street2": {
+          "target": "AddressLine2",
+          "confidence": 1.0
+        },
+        "city": {
+          "target": "City",
+          "confidence": 1.0
+        },
+        "zip": {
+          "target": "PostalCode",
+          "confidence": 1.0
+        },
+        "state_id": {
+          "target": "State",
+          "confidence": 0.9
+        },
+        "country_id": {
+          "target": "Country",
+          "confidence": 0.9
+        },
+        "property_supplier_payment_term_id": {
+          "target": "PaymentTerms",
+          "confidence": 0.8
+        },
+        "property_purchase_currency_id": {
+          "target": "CurrencyCode",
+          "confidence": 0.6
+        },
+        "active": {
+          "target": "Status",
+          "confidence": 0.7,
+          "notes": "Map True/False to Active/Inactive"
+        },
+        "company_name": {
+          "target": "AlternateName",
+          "confidence": 0.6
+        },
+        "company_type": {
+          "target": "TaxOrganizationType",
+          "confidence": 0.6
+        }
+      }
+    },
+    {
+      "source_model": "account.move",
+      "source_name": "Invoice",
+      "target_model": "invoices",
+      "target_name": "FSCM Invoice",
+      "notes": "Odoo account.move maps to Oracle FSCM Invoice. move_type distinguishes AR (out_invoice) from AP (in_invoice). Module: fscm.",
+      "fields": {
+        "name": {
+          "target": "InvoiceNumber",
+          "confidence": 0.9
+        },
+        "invoice_date": {
+          "target": "InvoiceDate",
+          "confidence": 1.0
+        },
+        "invoice_date_due": {
+          "target": "DueDate",
+          "confidence": 1.0
+        },
+        "amount_total": {
+          "target": "InvoiceAmount",
+          "confidence": 0.9
+        },
+        "amount_tax": {
+          "target": "TaxAmount",
+          "confidence": 0.9
+        },
+        "amount_untaxed": {
+          "target": "GrossAmount",
+          "confidence": 0.8
+        },
+        "currency_id": {
+          "target": "InvoiceCurrencyCode",
+          "confidence": 0.9,
+          "notes": "Odoo many2one to res.currency; map to ISO code string"
+        },
+        "invoice_payment_term_id": {
+          "target": "PaymentTerms",
+          "confidence": 0.8
+        },
+        "partner_id": {
+          "target": "SupplierName",
+          "confidence": 0.8,
+          "notes": "Look up by name; direction depends on move_type (supplier vs customer)"
+        },
+        "narration": {
+          "target": "Description",
+          "confidence": 0.8
+        },
+        "ref": {
+          "target": "PONumber",
+          "confidence": 0.8
+        },
+        "state": {
+          "target": "Status",
+          "confidence": 0.7,
+          "notes": "Map draft/posted/cancel to Oracle Approved/Paid/Cancelled"
+        }
+      }
+    },
+    {
+      "source_model": "hr.employee",
+      "source_name": "Employee",
+      "target_model": "workers",
+      "target_name": "HCM Worker",
+      "notes": "Odoo hr.employee maps to Oracle HCM Worker resource. Module: hcm.",
+      "fields": {
+        "name": {
+          "target": "DisplayName",
+          "confidence": 1.0
+        },
+        "employee_number": {
+          "target": "PersonNumber",
+          "confidence": 0.9
+        },
+        "work_email": {
+          "target": "WorkEmail",
+          "confidence": 1.0
+        },
+        "private_email": {
+          "target": "PersonalEmail",
+          "confidence": 0.9
+        },
+        "work_phone": {
+          "target": "WorkPhoneNumber",
+          "confidence": 1.0
+        },
+        "mobile_phone": {
+          "target": "MobilePhoneNumber",
+          "confidence": 1.0
+        },
+        "job_title": {
+          "target": "JobTitle",
+          "confidence": 1.0
+        },
+        "job_id": {
+          "target": "JobCode",
+          "confidence": 0.7,
+          "notes": "Odoo many2one to hr.job; map to Oracle job code"
+        },
+        "department_id": {
+          "target": "DepartmentName",
+          "confidence": 0.9,
+          "notes": "Odoo many2one to hr.department"
+        },
+        "parent_id": {
+          "target": "ManagerDisplayName",
+          "confidence": 0.7,
+          "notes": "Odoo manager link; look up by display name in Oracle"
+        },
+        "date_start": {
+          "target": "HireDate",
+          "confidence": 1.0,
+          "notes": "Contract start date maps to Oracle hire date"
+        },
+        "departure_date": {
+          "target": "TerminationDate",
+          "confidence": 0.9
+        },
+        "employee_type": {
+          "target": "WorkerType",
+          "confidence": 0.7
+        },
+        "birthday": {
+          "target": "DateOfBirth",
+          "confidence": 1.0
+        },
+        "ssnid": {
+          "target": "NationalIdValue",
+          "confidence": 0.7,
+          "notes": "Check local privacy regulations before migrating"
+        },
+        "gender": {
+          "target": "Gender",
+          "confidence": 0.8
+        },
+        "marital": {
+          "target": "MaritalStatus",
+          "confidence": 0.8
+        },
+        "work_location_id": {
+          "target": "LocationName",
+          "confidence": 0.7
+        }
+      }
+    },
+    {
+      "source_model": "hr.department",
+      "source_name": "Department",
+      "target_model": "departments",
+      "target_name": "HCM Department",
+      "notes": "Odoo hr.department maps to Oracle HCM Department resource. Module: hcm.",
+      "fields": {
+        "name": {
+          "target": "DepartmentName",
+          "confidence": 1.0
+        },
+        "manager_id": {
+          "target": "ManagerDisplayName",
+          "confidence": 0.8,
+          "notes": "Odoo many2one to hr.employee; look up by display name"
+        },
+        "company_id": {
+          "target": "BusinessUnitName",
+          "confidence": 0.6,
+          "notes": "Map Odoo company to Oracle BU in multi-company setup"
+        },
+        "active": {
+          "target": "Status",
+          "confidence": 0.7,
+          "notes": "Map True/False to Active/Inactive"
+        },
+        "parent_id": {
+          "target": "ParentDepartmentName",
+          "confidence": 0.8,
+          "notes": "Odoo many2one to hr.department; look up by name"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,556 @@
+{
+  "meta": {
+    "source_system": "odoo",
+    "target_system": "salesforce",
+    "version": "1.0",
+    "description": "Curated migration-relevant entities and fields for Odoo to Salesforce migrations"
+  },
+  "entities": [
+    {
+      "source_model": "res.partner",
+      "source_name": "Contact / Company",
+      "target_model": "Contact",
+      "target_name": "Contact",
+      "notes": "Odoo res.partner covers both contacts and companies. Use is_company=False for Contact, is_company=True for Account.",
+      "fields": {
+        "name": {
+          "target": "LastName",
+          "confidence": 0.9,
+          "notes": "Full name maps to LastName; split if first/last name are needed"
+        },
+        "firstname": {
+          "target": "FirstName",
+          "confidence": 1.0
+        },
+        "lastname": {
+          "target": "LastName",
+          "confidence": 1.0
+        },
+        "email": {
+          "target": "Email",
+          "confidence": 1.0
+        },
+        "phone": {
+          "target": "Phone",
+          "confidence": 1.0
+        },
+        "mobile": {
+          "target": "MobilePhone",
+          "confidence": 1.0
+        },
+        "street": {
+          "target": "MailingStreet",
+          "confidence": 1.0
+        },
+        "street2": {
+          "target": "MailingStreet",
+          "confidence": 0.8,
+          "notes": "Append to MailingStreet"
+        },
+        "city": {
+          "target": "MailingCity",
+          "confidence": 1.0
+        },
+        "zip": {
+          "target": "MailingPostalCode",
+          "confidence": 1.0
+        },
+        "state_id": {
+          "target": "MailingState",
+          "confidence": 0.9,
+          "notes": "Odoo many2one to res.country.state; map to state abbreviation string"
+        },
+        "country_id": {
+          "target": "MailingCountry",
+          "confidence": 0.9,
+          "notes": "Odoo many2one to res.country; map to country name or ISO code"
+        },
+        "title": {
+          "target": "Salutation",
+          "confidence": 0.8,
+          "notes": "Odoo many2one to res.partner.title; map values (Mr./Mrs./Dr. etc.)"
+        },
+        "function": {
+          "target": "Title",
+          "confidence": 0.9,
+          "notes": "Job title / position"
+        },
+        "website": {
+          "target": "Website",
+          "confidence": 1.0
+        },
+        "comment": {
+          "target": "Description",
+          "confidence": 0.9
+        },
+        "fax": {
+          "target": "Fax",
+          "confidence": 1.0
+        },
+        "ref": {
+          "target": "AccountNumber",
+          "confidence": 0.7,
+          "notes": "Internal reference number"
+        },
+        "lang": {
+          "target": "Languages__c",
+          "confidence": 0.5,
+          "notes": "No standard SF field; map to custom field if needed"
+        },
+        "date_of_birth": {
+          "target": "Birthdate",
+          "confidence": 1.0
+        },
+        "company_name": {
+          "target": "AccountId",
+          "confidence": 0.7,
+          "notes": "If contact has a parent company, link to Account"
+        },
+        "category_id": {
+          "target": "LeadSource",
+          "confidence": 0.4,
+          "notes": "Odoo tags; may map to custom multi-select or Lead Source"
+        },
+        "customer_rank": {
+          "target": "Type",
+          "confidence": 0.5,
+          "notes": "Use to set contact type classification"
+        },
+        "supplier_rank": {
+          "target": "Type",
+          "confidence": 0.5,
+          "notes": "Use to set contact type classification"
+        },
+        "active": {
+          "target": "IsActive__c",
+          "confidence": 0.7,
+          "notes": "No direct SF equivalent; use custom field or record type"
+        }
+      }
+    },
+    {
+      "source_model": "res.partner",
+      "source_name": "Company",
+      "target_model": "Account",
+      "target_name": "Account",
+      "notes": "Use is_company=True filter when migrating Odoo partners as Salesforce Accounts",
+      "fields": {
+        "name": {
+          "target": "Name",
+          "confidence": 1.0
+        },
+        "email": {
+          "target": "Email",
+          "confidence": 1.0
+        },
+        "phone": {
+          "target": "Phone",
+          "confidence": 1.0
+        },
+        "fax": {
+          "target": "Fax",
+          "confidence": 1.0
+        },
+        "website": {
+          "target": "Website",
+          "confidence": 1.0
+        },
+        "street": {
+          "target": "BillingStreet",
+          "confidence": 1.0
+        },
+        "street2": {
+          "target": "BillingStreet",
+          "confidence": 0.8
+        },
+        "city": {
+          "target": "BillingCity",
+          "confidence": 1.0
+        },
+        "zip": {
+          "target": "BillingPostalCode",
+          "confidence": 1.0
+        },
+        "state_id": {
+          "target": "BillingState",
+          "confidence": 0.9
+        },
+        "country_id": {
+          "target": "BillingCountry",
+          "confidence": 0.9
+        },
+        "vat": {
+          "target": "AccountNumber",
+          "confidence": 0.7,
+          "notes": "VAT number / tax ID"
+        },
+        "ref": {
+          "target": "AccountNumber",
+          "confidence": 0.7
+        },
+        "comment": {
+          "target": "Description",
+          "confidence": 0.9
+        },
+        "industry_id": {
+          "target": "Industry",
+          "confidence": 0.8
+        },
+        "employee": {
+          "target": "NumberOfEmployees",
+          "confidence": 0.8
+        },
+        "category_id": {
+          "target": "Type",
+          "confidence": 0.5
+        },
+        "active": {
+          "target": "Active",
+          "confidence": 0.9
+        }
+      }
+    },
+    {
+      "source_model": "crm.lead",
+      "source_name": "Lead / Opportunity",
+      "target_model": "Lead",
+      "target_name": "Lead",
+      "notes": "Odoo crm.lead covers both leads and opportunities. Use type='lead' for Lead.",
+      "fields": {
+        "name": {
+          "target": "LastName",
+          "confidence": 0.9
+        },
+        "partner_name": {
+          "target": "Company",
+          "confidence": 1.0
+        },
+        "email_from": {
+          "target": "Email",
+          "confidence": 1.0
+        },
+        "phone": {
+          "target": "Phone",
+          "confidence": 1.0
+        },
+        "mobile": {
+          "target": "MobilePhone",
+          "confidence": 1.0
+        },
+        "street": {
+          "target": "Street",
+          "confidence": 1.0
+        },
+        "city": {
+          "target": "City",
+          "confidence": 1.0
+        },
+        "zip": {
+          "target": "PostalCode",
+          "confidence": 1.0
+        },
+        "state_id": {
+          "target": "State",
+          "confidence": 0.9
+        },
+        "country_id": {
+          "target": "Country",
+          "confidence": 0.9
+        },
+        "description": {
+          "target": "Description",
+          "confidence": 0.9
+        },
+        "expected_revenue": {
+          "target": "AnnualRevenue",
+          "confidence": 0.7
+        },
+        "probability": {
+          "target": "Rating",
+          "confidence": 0.6
+        },
+        "user_id": {
+          "target": "OwnerId",
+          "confidence": 0.8,
+          "notes": "Assigned salesperson; must map to SF user ID"
+        },
+        "campaign_id": {
+          "target": "LeadSource",
+          "confidence": 0.6
+        },
+        "date_deadline": {
+          "target": "CloseDate",
+          "confidence": 0.8
+        },
+        "website": {
+          "target": "Website",
+          "confidence": 1.0
+        },
+        "function": {
+          "target": "Title",
+          "confidence": 0.9
+        }
+      }
+    },
+    {
+      "source_model": "crm.lead",
+      "source_name": "Opportunity",
+      "target_model": "Opportunity",
+      "target_name": "Opportunity",
+      "notes": "Use type='opportunity' filter when migrating as Salesforce Opportunity",
+      "fields": {
+        "name": {
+          "target": "Name",
+          "confidence": 1.0
+        },
+        "expected_revenue": {
+          "target": "Amount",
+          "confidence": 0.9
+        },
+        "probability": {
+          "target": "Probability",
+          "confidence": 1.0
+        },
+        "date_deadline": {
+          "target": "CloseDate",
+          "confidence": 1.0
+        },
+        "stage_id": {
+          "target": "StageName",
+          "confidence": 0.9,
+          "notes": "Map Odoo stage names to Salesforce stage names"
+        },
+        "user_id": {
+          "target": "OwnerId",
+          "confidence": 0.8
+        },
+        "partner_id": {
+          "target": "AccountId",
+          "confidence": 0.8
+        },
+        "description": {
+          "target": "Description",
+          "confidence": 0.9
+        },
+        "campaign_id": {
+          "target": "CampaignId",
+          "confidence": 0.7
+        },
+        "date_open": {
+          "target": "CreatedDate",
+          "confidence": 0.7
+        }
+      }
+    },
+    {
+      "source_model": "sale.order",
+      "source_name": "Sales Order",
+      "target_model": "Opportunity",
+      "target_name": "Opportunity",
+      "notes": "Odoo sale.order maps most naturally to Salesforce Opportunity at the deal level",
+      "fields": {
+        "name": {
+          "target": "Name",
+          "confidence": 0.9
+        },
+        "partner_id": {
+          "target": "AccountId",
+          "confidence": 0.9
+        },
+        "amount_total": {
+          "target": "Amount",
+          "confidence": 0.9
+        },
+        "date_order": {
+          "target": "CreatedDate",
+          "confidence": 0.8
+        },
+        "validity_date": {
+          "target": "CloseDate",
+          "confidence": 0.7
+        },
+        "user_id": {
+          "target": "OwnerId",
+          "confidence": 0.8
+        },
+        "state": {
+          "target": "StageName",
+          "confidence": 0.7,
+          "notes": "draft/sent/sale/done/cancel → map to SF stage names"
+        },
+        "note": {
+          "target": "Description",
+          "confidence": 0.8
+        },
+        "currency_id": {
+          "target": "CurrencyIsoCode",
+          "confidence": 0.9
+        },
+        "client_order_ref": {
+          "target": "ContractNumber",
+          "confidence": 0.6
+        },
+        "campaign_id": {
+          "target": "CampaignId",
+          "confidence": 0.7
+        }
+      }
+    },
+    {
+      "source_model": "product.template",
+      "source_name": "Product",
+      "target_model": "Product2",
+      "target_name": "Product",
+      "fields": {
+        "name": {
+          "target": "Name",
+          "confidence": 1.0
+        },
+        "description": {
+          "target": "Description",
+          "confidence": 0.9
+        },
+        "description_sale": {
+          "target": "Description",
+          "confidence": 0.8
+        },
+        "list_price": {
+          "target": "UnitPrice",
+          "confidence": 0.9,
+          "notes": "Maps to PricebookEntry.UnitPrice"
+        },
+        "default_code": {
+          "target": "ProductCode",
+          "confidence": 1.0
+        },
+        "type": {
+          "target": "Family",
+          "confidence": 0.6
+        },
+        "categ_id": {
+          "target": "Family",
+          "confidence": 0.7
+        },
+        "active": {
+          "target": "IsActive",
+          "confidence": 1.0
+        },
+        "weight": {
+          "target": "QuantityUnitOfMeasure",
+          "confidence": 0.4
+        },
+        "uom_id": {
+          "target": "QuantityUnitOfMeasure",
+          "confidence": 0.7
+        }
+      }
+    },
+    {
+      "source_model": "account.move",
+      "source_name": "Invoice",
+      "target_model": "Invoice__c",
+      "target_name": "Invoice (Custom)",
+      "notes": "No standard Salesforce Invoice object; usually migrated to a custom object or CPQ",
+      "fields": {
+        "name": {
+          "target": "Name",
+          "confidence": 0.9
+        },
+        "partner_id": {
+          "target": "Account__c",
+          "confidence": 0.9
+        },
+        "invoice_date": {
+          "target": "Invoice_Date__c",
+          "confidence": 0.9
+        },
+        "invoice_date_due": {
+          "target": "Due_Date__c",
+          "confidence": 0.9
+        },
+        "amount_total": {
+          "target": "Total_Amount__c",
+          "confidence": 0.9
+        },
+        "amount_untaxed": {
+          "target": "Subtotal__c",
+          "confidence": 0.9
+        },
+        "state": {
+          "target": "Status__c",
+          "confidence": 0.8
+        },
+        "currency_id": {
+          "target": "CurrencyIsoCode",
+          "confidence": 0.9
+        },
+        "ref": {
+          "target": "Reference__c",
+          "confidence": 0.8
+        },
+        "narration": {
+          "target": "Notes__c",
+          "confidence": 0.8
+        },
+        "user_id": {
+          "target": "OwnerId",
+          "confidence": 0.7
+        }
+      }
+    },
+    {
+      "source_model": "hr.employee",
+      "source_name": "Employee",
+      "target_model": "Contact",
+      "target_name": "Contact",
+      "notes": "Salesforce has no native Employee object in standard CRM; map to Contact with custom fields",
+      "fields": {
+        "name": {
+          "target": "LastName",
+          "confidence": 0.9
+        },
+        "work_email": {
+          "target": "Email",
+          "confidence": 1.0
+        },
+        "work_phone": {
+          "target": "Phone",
+          "confidence": 1.0
+        },
+        "mobile_phone": {
+          "target": "MobilePhone",
+          "confidence": 1.0
+        },
+        "job_title": {
+          "target": "Title",
+          "confidence": 1.0
+        },
+        "job_id": {
+          "target": "Title",
+          "confidence": 0.8
+        },
+        "department_id": {
+          "target": "Department",
+          "confidence": 0.9
+        },
+        "address_id": {
+          "target": "AccountId",
+          "confidence": 0.6
+        },
+        "birthday": {
+          "target": "Birthdate",
+          "confidence": 1.0
+        },
+        "gender": {
+          "target": "Gender__c",
+          "confidence": 0.7,
+          "notes": "No standard SF field; use custom"
+        },
+        "active": {
+          "target": "IsActive__c",
+          "confidence": 0.7
+        }
+      }
+    }
+  ]
+}

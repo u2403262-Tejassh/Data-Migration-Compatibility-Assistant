@@ -1,0 +1,63 @@
+{
+  "meta": {
+    "source_system": "salesforce",
+    "target_system": "oracle",
+    "version": "1.0"
+  },
+  "entities": [
+    {
+      "source_model": "Account",
+      "target_model": "accounts",
+      "fields": {
+        "Name": { "target": "OrganizationName", "confidence": 1.0 },
+        "AccountNumber": { "target": "PartyNumber", "confidence": 0.9 },
+        "Phone": { "target": "PhoneNumber", "confidence": 1.0 },
+        "Website": { "target": "URL", "confidence": 1.0 },
+        "Industry": { "target": "IndustryCode", "confidence": 0.8 },
+        "NumberOfEmployees": { "target": "EmployeesTotal", "confidence": 0.9 },
+        "Description": { "target": "Description", "confidence": 1.0 },
+        "BillingStreet": { "target": "AddressLine1", "confidence": 1.0 },
+        "BillingCity": { "target": "City", "confidence": 1.0 },
+        "BillingState": { "target": "State", "confidence": 1.0 },
+        "BillingPostalCode": { "target": "PostalCode", "confidence": 1.0 },
+        "BillingCountry": { "target": "Country", "confidence": 1.0 }
+      }
+    },
+    {
+      "source_model": "Contact",
+      "target_model": "contacts",
+      "fields": {
+        "FirstName": { "target": "FirstName", "confidence": 1.0 },
+        "LastName": { "target": "LastName", "confidence": 1.0 },
+        "Email": { "target": "EmailAddress", "confidence": 1.0 },
+        "MobilePhone": { "target": "MobileNumber", "confidence": 1.0 },
+        "Phone": { "target": "WorkPhoneNumber", "confidence": 0.9 },
+        "Title": { "target": "JobTitle", "confidence": 1.0 },
+        "Department": { "target": "Department", "confidence": 1.0 },
+        "MailingStreet": { "target": "AddressLine1", "confidence": 1.0 },
+        "MailingCity": { "target": "City", "confidence": 1.0 },
+        "MailingState": { "target": "State", "confidence": 1.0 },
+        "MailingPostalCode": { "target": "PostalCode", "confidence": 1.0 },
+        "MailingCountry": { "target": "Country", "confidence": 1.0 }
+      }
+    },
+    {
+      "source_model": "Opportunity",
+      "target_model": "invoices",
+      "fields": {
+        "Name": { "target": "InvoiceNumber", "confidence": 0.8 },
+        "Amount": { "target": "InvoiceAmount", "confidence": 0.9 },
+        "CloseDate": { "target": "InvoiceDate", "confidence": 0.8 },
+        "Description": { "target": "Description", "confidence": 0.8 }
+      }
+    },
+    {
+      "source_model": "User",
+      "target_model": "workers",
+      "fields": {
+        "Name": { "target": "DisplayName", "confidence": 1.0 },
+        "EmployeeNumber": { "target": "PersonNumber", "confidence": 0.9 }
+      }
+    }
+  ]
+}

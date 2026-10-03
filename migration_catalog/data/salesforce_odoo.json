@@ -1,0 +1,119 @@
+{
+  "meta": {
+    "source_system": "salesforce",
+    "target_system": "odoo",
+    "version": "1.0",
+    "description": "Curated migration-relevant entities and fields for Salesforce to Odoo migrations"
+  },
+  "entities": [
+    {
+      "source_model": "Contact",
+      "source_name": "Contact",
+      "target_model": "res.partner",
+      "target_name": "Contact",
+      "fields": {
+        "FirstName": {"target": "firstname", "confidence": 1.0},
+        "LastName": {"target": "lastname", "confidence": 1.0},
+        "Email": {"target": "email", "confidence": 1.0},
+        "Phone": {"target": "phone", "confidence": 1.0},
+        "MobilePhone": {"target": "mobile", "confidence": 1.0},
+        "Fax": {"target": "fax", "confidence": 1.0},
+        "Title": {"target": "function", "confidence": 0.9},
+        "Salutation": {"target": "title", "confidence": 0.8},
+        "MailingStreet": {"target": "street", "confidence": 1.0},
+        "MailingCity": {"target": "city", "confidence": 1.0},
+        "MailingPostalCode": {"target": "zip", "confidence": 1.0},
+        "MailingState": {"target": "state_id", "confidence": 0.9},
+        "MailingCountry": {"target": "country_id", "confidence": 0.9},
+        "Description": {"target": "comment", "confidence": 0.9},
+        "Birthdate": {"target": "date_of_birth", "confidence": 1.0},
+        "Department": {"target": "department", "confidence": 0.8},
+        "Website": {"target": "website", "confidence": 1.0},
+        "AccountId": {"target": "parent_id", "confidence": 0.8, "notes": "Link to parent company res.partner"}
+      }
+    },
+    {
+      "source_model": "Account",
+      "source_name": "Account",
+      "target_model": "res.partner",
+      "target_name": "Company",
+      "notes": "Salesforce Account maps to Odoo res.partner with is_company=True",
+      "fields": {
+        "Name": {"target": "name", "confidence": 1.0},
+        "Phone": {"target": "phone", "confidence": 1.0},
+        "Fax": {"target": "fax", "confidence": 1.0},
+        "Website": {"target": "website", "confidence": 1.0},
+        "BillingStreet": {"target": "street", "confidence": 1.0},
+        "BillingCity": {"target": "city", "confidence": 1.0},
+        "BillingPostalCode": {"target": "zip", "confidence": 1.0},
+        "BillingState": {"target": "state_id", "confidence": 0.9},
+        "BillingCountry": {"target": "country_id", "confidence": 0.9},
+        "ShippingStreet": {"target": "street", "confidence": 0.6, "notes": "Consider child delivery address partner"},
+        "Description": {"target": "comment", "confidence": 0.9},
+        "Industry": {"target": "industry_id", "confidence": 0.8},
+        "NumberOfEmployees": {"target": "employee", "confidence": 0.8},
+        "AccountNumber": {"target": "ref", "confidence": 0.8},
+        "Type": {"target": "category_id", "confidence": 0.5},
+        "Active": {"target": "active", "confidence": 0.9}
+      }
+    },
+    {
+      "source_model": "Lead",
+      "source_name": "Lead",
+      "target_model": "crm.lead",
+      "target_name": "Lead",
+      "fields": {
+        "FirstName": {"target": "contact_name", "confidence": 0.9},
+        "LastName": {"target": "partner_name", "confidence": 0.9},
+        "Company": {"target": "partner_name", "confidence": 0.9},
+        "Email": {"target": "email_from", "confidence": 1.0},
+        "Phone": {"target": "phone", "confidence": 1.0},
+        "MobilePhone": {"target": "mobile", "confidence": 1.0},
+        "Title": {"target": "function", "confidence": 0.9},
+        "Street": {"target": "street", "confidence": 1.0},
+        "City": {"target": "city", "confidence": 1.0},
+        "PostalCode": {"target": "zip", "confidence": 1.0},
+        "State": {"target": "state_id", "confidence": 0.9},
+        "Country": {"target": "country_id", "confidence": 0.9},
+        "Website": {"target": "website", "confidence": 1.0},
+        "Description": {"target": "description", "confidence": 0.9},
+        "AnnualRevenue": {"target": "expected_revenue", "confidence": 0.7},
+        "LeadSource": {"target": "campaign_id", "confidence": 0.6},
+        "OwnerId": {"target": "user_id", "confidence": 0.8}
+      }
+    },
+    {
+      "source_model": "Opportunity",
+      "source_name": "Opportunity",
+      "target_model": "crm.lead",
+      "target_name": "Opportunity",
+      "fields": {
+        "Name": {"target": "name", "confidence": 1.0},
+        "Amount": {"target": "expected_revenue", "confidence": 0.9},
+        "Probability": {"target": "probability", "confidence": 1.0},
+        "CloseDate": {"target": "date_deadline", "confidence": 1.0},
+        "StageName": {"target": "stage_id", "confidence": 0.9},
+        "OwnerId": {"target": "user_id", "confidence": 0.8},
+        "AccountId": {"target": "partner_id", "confidence": 0.8},
+        "Description": {"target": "description", "confidence": 0.9},
+        "CampaignId": {"target": "campaign_id", "confidence": 0.7},
+        "Type": {"target": "tag_ids", "confidence": 0.5}
+      }
+    },
+    {
+      "source_model": "Product2",
+      "source_name": "Product",
+      "target_model": "product.template",
+      "target_name": "Product",
+      "fields": {
+        "Name": {"target": "name", "confidence": 1.0},
+        "ProductCode": {"target": "default_code", "confidence": 1.0},
+        "Description": {"target": "description_sale", "confidence": 0.9},
+        "IsActive": {"target": "active", "confidence": 1.0},
+        "Family": {"target": "categ_id", "confidence": 0.7},
+        "QuantityUnitOfMeasure": {"target": "uom_id", "confidence": 0.7},
+        "StockKeepingUnit": {"target": "default_code", "confidence": 0.8}
+      }
+    }
+  ]
+}
