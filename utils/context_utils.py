@@ -37,6 +37,4 @@ def sync_context():
         st.session_state.compatibility
     )
 
-    context.report_path = (
-        st.session_state.report_path
-    )
+    context.report_bytes = st.session_state.report_bytes

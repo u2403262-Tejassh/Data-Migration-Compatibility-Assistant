@@ -1,4 +1,5 @@
 from datetime import datetime
+from io import BytesIO
 
 from reportlab.platypus import (
     SimpleDocTemplate,
@@ -203,11 +204,9 @@ def generate_report(
 ):
     styles = build_styles()
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"migration_report_{timestamp}.pdf"
-
+    output = BytesIO()
     doc = SimpleDocTemplate(
-        filename,
+        output,
         pagesize=A4,
         leftMargin=18 * mm,
         rightMargin=18 * mm,
@@ -374,5 +373,5 @@ def generate_report(
 
     doc.build(story)
 
-    return filename
+    return output.getvalue()
  

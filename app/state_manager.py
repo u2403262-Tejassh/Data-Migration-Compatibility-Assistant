@@ -43,17 +43,17 @@ DEFAULT_STATE = {
     "compatibility": None,
 
     # reporting
-    "report_path": None,
+    "report_bytes": None,
 }
 
 
 def initialize_state():
     """
-    Ensure all required session state keys exist, then auto-fill any saved
-    credentials that haven't been set yet this session.
+    Ensure all required session state keys exist, then initialize credentials
+    from configured secrets/environment values once per browser session.
 
-    Credentials are loaded once per session (guarded by _creds_loaded flag)
-    so that live edits in the sidebar are never overwritten on rerun.
+    Credential defaults are loaded once per session so live widget edits are
+    never overwritten on rerun; credentials are never saved to disk.
     Widget-bound keys (source_system, target_system) are applied only if the
     key doesn't exist yet — before the widget is instantiated on first run.
     """
@@ -66,7 +66,7 @@ def initialize_state():
             target_system="",
         )
 
-    # Auto-fill credentials exactly once per browser session
+    # Initialize configured credential defaults exactly once per session
     if not st.session_state.get("_creds_loaded"):
         st.session_state["_creds_loaded"] = True
         try:
@@ -79,7 +79,7 @@ def initialize_state():
                 if current in (None, "", [], False):
                     st.session_state[key] = value
         except Exception:
-            pass  # Never crash startup because of a bad credentials file
+            pass  # Missing secrets are handled when a connection is initialized
 
 def reset_analysis_state():
     """
@@ -89,7 +89,7 @@ def reset_analysis_state():
     keys = [
         "prediction",
         "compatibility",
-        "report_path",
+        "report_bytes",
         "target_schema",
         "target_entity",
         "target_confirmed",

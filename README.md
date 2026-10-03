@@ -1,181 +1,80 @@
 # Data Migration Compatibility Assistant
 
-## Overview
+The Data Migration Compatibility Assistant is a Streamlit application for comparing source and target schemas, suggesting entity and field mappings, identifying compatibility issues, and generating a downloadable PDF assessment report.
 
-The Data Migration Compatibility Assistant is a Python-based application developed to analyze and assess migration compatibility between enterprise systems and Salesforce.
+## Features
 
-The application automates schema comparison, entity mapping, compatibility analysis, and report generation, helping teams identify migration risks and make informed decisions before implementation.
+- Connect to Salesforce, Odoo, and Oracle Fusion, or analyze an uploaded CSV/XLSX dataset.
+- Inspect source and target schemas and sample data.
+- Run deterministic compatibility analysis with Groq-assisted mapping and recommendations.
+- Generate and download a PDF migration assessment report.
+- Use the bundled `sample_data/source.csv` example when a target connection has been initialized.
 
-## Key Features
-
-* Connect to Salesforce and external source systems
-* Extract and analyze schema metadata
-* Perform entity and field-level compatibility assessment
-* Generate compatibility scores and migration recommendations
-* Identify unsupported or mismatched fields
-* Produce detailed migration reports
-* Generate AI-assisted migration insights
-* Interactive web interface built with Streamlit
-
-## Technology Stack
-
-| Component                | Technology        |
-| ------------------------ | ----------------- |
-| Programming Language     | Python 3.x        |
-| Frontend                 | Streamlit         |
-| Data Processing          | Pandas, NumPy     |
-| Salesforce Integration   | Simple Salesforce |
-| AI Integration           | Groq API          |
-| Documentation Generation | Python-Docx       |
-| Configuration Management | Python-Dotenv     |
-
-## Project Structure
+## Project layout
 
 ```text
-compatibility_analyzer/
-├── __init__.py
-├── config.py                    # Global settings
-├── llm_client.py                # Groq SDK wrapper
+.
+├── streamlit_app.py                 # Root Streamlit entry point
+├── compatibility_analyzer/         # Import-path shim for the flat source layout
+│   └── __init__.py
 ├── app/
-│   ├── migration_analyzer_streamlit_app.py  # Entry point
+│   ├── migration_analyzer_streamlit_app.py  # Real Streamlit application
 │   ├── workflow_controller.py
 │   ├── state_manager.py
 │   └── ui_components.py
-├── connectors/
-│   ├── base_connector.py
-│   ├── odoo_connector.py
-│   ├── salesforce_connector.py
-│   ├── oracle_fusion_connector.py
-│   ├── file_connector.py
-│   └── connector_factory.py
-├── migration_catalog/
-│   ├── catalog_manager.py
-│   └── data/
-│       ├── odoo_salesforce.json
-│       ├── salesforce_odoo.json
-│       ├── oracle_odoo.json
-│       ├── oracle_salesforce.json
-│       ├── salesforce_oracle.json
-│       └── odoo_oracle.json
-├── matching/
-│   ├── entity_matcher.py
-│   └── dataset_matcher.py       # Deprecated shim
-├── reasoning/
-│   └── compatibility_reasoner.py
-├── planning/
-│   ├── source_field_analyzer.py
-│   ├── target_schema_analyzer.py
-│   └── field_classifier.py
-├── profiling/
-│   └── source_profiler.py
-├── reporting/
-│   └── report_generator.py
-├── models/
-│   ├── entity_schema.py
-│   └── migration_context.py
-├── utils/
-│   ├── credentials.py
-│   ├── schema_utils.py
-│   ├── schema_adapter.py
-│   └── context_utils.py
-├── sample_data/
-│   └── source.csv
-└── output/
-
+├── connectors/                      # File, Odoo, Oracle, and Salesforce connectors
+├── migration_catalog/               # Static migration catalogs
+├── matching/ planning/ profiling/ reasoning/ reporting/ models/ utils/
+├── sample_data/source.csv
+└── output/.gitkeep
 ```
 
-## Installation
+## Local installation and run
 
-### 1. Create a Virtual Environment
+Use Python 3.11 or 3.12:
 
 ```bash
 python -m venv venv
-```
-
-### 2. Activate the Environment
-
-**Windows**
-
-```bash
-venv\Scripts\activate
-```
-
-**Linux/macOS**
-
-```bash
+# Linux/macOS
 source venv/bin/activate
-```
-
-### 3. Install Dependencies
-
-```bash
+# Windows PowerShell: venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+cp .env.example .env
+streamlit run streamlit_app.py
 ```
 
-## Environment Configuration
+Edit `.env` with your local Groq and Salesforce values. `python-dotenv` loads it for local development. Alternatively, configure Streamlit secrets. Odoo and Oracle connection details can be entered in the sidebar. Credentials entered in the UI are held in Streamlit session state only; the application does not save them to a credentials file.
 
-Create a `.env` file in the project root directory.
+`APP_PASSWORD` is optional. When configured, the app displays a password gate before showing the analysis UI.
 
-Example:
+## Deploy to Streamlit Community Cloud
 
-```env
-GROQ_API_KEY=your_api_key
+1. Push this repository to GitHub.
+2. Go to [share.streamlit.io](https://share.streamlit.io/) and choose **New app**.
+3. Select this repository and the branch to deploy.
+4. Set **Main file path** to `streamlit_app.py`.
+5. In **Advanced settings**, choose Python **3.11** or **3.12** and paste your values into the Secrets editor in TOML format. For example:
 
-SALESFORCE_USERNAME=your_username
-SALESFORCE_PASSWORD=your_password
-SALESFORCE_SECURITY_TOKEN=your_security_token
-SALESFORCE_DOMAIN=login
-```
+   ```toml
+   GROQ_API_KEY = "your_api_key"
+   SALESFORCE_USERNAME = "your_username"
+   SALESFORCE_PASSWORD = "your_password"
+   SALESFORCE_SECURITY_TOKEN = "your_security_token"
+   SALESFORCE_DOMAIN = "login"
+   APP_PASSWORD = "your_app_password"
+   ```
 
-## Running the Application
+   `APP_PASSWORD` is optional; omit it to disable the password gate. Never commit `.env` or `.streamlit/secrets.toml`.
+6. Click **Deploy**.
 
-Start the Streamlit application:
+Streamlit Community Cloud uses an ephemeral filesystem. The app does not rely on files persisting between runs: uploaded datasets are read in memory, and generated PDF reports are built in memory and downloaded through the UI. The `output/` directory is retained only as an empty placeholder; reports are not written there.
 
-```bash
-streamlit run app.py
-```
+## Connections and network access
 
-The application will launch locally and open in your default web browser.
+The hosted app must be able to reach the configured Groq, Salesforce, Odoo, or Oracle endpoints from Streamlit Community Cloud. A private-network-only ERP endpoint, a firewall-restricted host, or a `localhost` URL on your own computer will not be reachable from the cloud app. Enter an endpoint that the deployed app can access and use appropriately restricted credentials.
 
-## Workflow
+Salesforce and Groq values may be supplied as Streamlit secrets/environment variables or entered in the sidebar. Odoo and Oracle credentials are entered in the sidebar. Missing required values are reported in the UI rather than as an application traceback.
 
-1. Configure environment variables.
-2. Connect to Salesforce and source systems.
-3. Load source and target schemas.
-4. Run compatibility analysis.
-5. Review compatibility scores and recommendations.
-6. Generate migration reports and documentation.
+## Reports
 
-## Generated Documentation
-
-The application can generate the following documents:
-
-* Technical Design Document (TDD)
-* Functional Specification Document (FSD)
-* Use Case Document (UCD)
-* Installation and Deployment Guide
-* Source Code and Dependency Documentation
-
-## Assumptions
-
-* Salesforce credentials are valid.
-* Required APIs are accessible.
-* Source system metadata is available.
-* Users have sufficient permissions to access schemas.
-
-## Limitations
-
-* Compatibility recommendations depend on available metadata.
-* Complex business logic transformations may require manual validation.
-* Large schema analyses may increase processing time.
-* AI-generated recommendations should be reviewed before production use.
-
-## Future Enhancements
-
-* Support for additional ERP and CRM systems
-* Automated migration script generation
-* Advanced schema visualization
-* Real-time migration monitoring
-* Enhanced AI-assisted mapping recommendations
-
-## 
+The current app generates a PDF compatibility assessment. It does not currently generate separate TDD, FSD, or UCD documents. Downloaded reports are not persisted on the Streamlit server.

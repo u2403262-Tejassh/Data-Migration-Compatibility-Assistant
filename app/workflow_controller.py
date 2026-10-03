@@ -1,8 +1,12 @@
 import logging
-import tempfile
+from io import BytesIO
 from pathlib import Path
 
+import pandas as pd
 import streamlit as st
+
+from compatibility_analyzer.config import get_secret
+from compatibility_analyzer.profiling.source_profiler import load_source_file
 
 from compatibility_analyzer.connectors.connector_factory import ConnectorFactory
 from compatibility_analyzer.llm_client import LLMClient
@@ -37,13 +41,6 @@ def normalize_system(system_name: str) -> str:
     return normalized
 
 
-def write_uploaded_file(uploaded) -> str:
-    suffix = Path(uploaded.name).suffix
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        tmp.write(uploaded.getbuffer())
-        return tmp.name
-
-
 def _to_dict(schema) -> dict:
     """Convert EntitySchema → dict, or pass a dict through unchanged."""
     if hasattr(schema, "to_dict"):
@@ -76,14 +73,25 @@ def build_connector_config(prefix: str) -> dict:
 
     if system_name == "Salesforce":
         return {
-            "username":       st.session_state.get(f"{prefix}_salesforce_username"),
-            "password":       st.session_state.get(f"{prefix}_salesforce_password"),
-            "security_token": st.session_state.get(f"{prefix}_salesforce_token"),
-            # "login" = Production + Developer Edition
-            # "test"  = Sandboxes ONLY
-            "domain":         st.session_state.get(f"{prefix}_salesforce_domain", "login"),
-            # Optional My Domain hostname (e.g. mycompany.my.salesforce.com)
-            "custom_domain":  (
+            "username": (
+                st.session_state.get(f"{prefix}_salesforce_username")
+                or get_secret("SALESFORCE_USERNAME")
+            ),
+            "password": (
+                st.session_state.get(f"{prefix}_salesforce_password")
+                or get_secret("SALESFORCE_PASSWORD")
+            ),
+            "security_token": (
+                st.session_state.get(f"{prefix}_salesforce_token")
+                or get_secret("SALESFORCE_SECURITY_TOKEN")
+            ),
+            # "login" = Production + Developer Edition; "test" = Sandbox.
+            "domain": (
+                st.session_state.get(f"{prefix}_salesforce_domain")
+                or get_secret("SALESFORCE_DOMAIN", "login")
+            ),
+            # Optional My Domain hostname (e.g. mycompany.my.salesforce.com).
+            "custom_domain": (
                 st.session_state.get(f"{prefix}_salesforce_custom_domain", "") or None
             ),
         }
@@ -98,55 +106,109 @@ def build_connector_config(prefix: str) -> dict:
     raise ValueError(f"Unsupported connector config for {system_name}")
 
 
+class MissingRequiredSecretError(ValueError):
+    """Raised when a required deployment secret or connection value is absent."""
+
+
 # ── Infrastructure init ────────────────────────────────────────────────────
 
-def initialize_connections():
-    """
-    Initialize infrastructure.
-    CSV source skips source connector initialization.
-    Groq API key is mandatory.
-    """
-    api_key = st.session_state.get("groq_api_key")
-    if not api_key:
-        raise ValueError("Groq API key is required.")
-
-    st.session_state.llm_client = LLMClient(api_key)
-
-    target_connector = ConnectorFactory.create(
-        normalize_system(st.session_state.target_system),
-        build_connector_config("target"),
-    )
-    target_connector.test_connection()
-    st.session_state.target_connector = target_connector
-    st.session_state.target_models = target_connector.discover_models()
-
-    if not is_csv_source():
-        source_connector = ConnectorFactory.create(
-            normalize_system(st.session_state.source_system),
-            build_connector_config("source"),
+def _require_salesforce_credentials(config):
+    required = {
+        "username": "SALESFORCE_USERNAME",
+        "password": "SALESFORCE_PASSWORD",
+        "security_token": "SALESFORCE_SECURITY_TOKEN",
+    }
+    missing = [secret_name for field, secret_name in required.items() if not config.get(field)]
+    if missing:
+        names = ", ".join(missing)
+        raise MissingRequiredSecretError(
+            f"Missing required Salesforce credential(s): {names}. "
+            "Set them in Streamlit secrets/environment variables or enter them "
+            "in the Salesforce connection form."
         )
-        source_connector.test_connection()
-        st.session_state.source_connector = source_connector
-        st.session_state.source_models = source_connector.discover_models()
 
+
+def _initialize_connector(system_name, prefix):
+    config = build_connector_config(prefix)
+    if system_name == "Salesforce":
+        _require_salesforce_credentials(config)
+
+    try:
+        connector = ConnectorFactory.create(normalize_system(system_name), config)
+        connector.test_connection()
+        models = connector.discover_models()
+        return connector, models
+    except MissingRequiredSecretError:
+        raise
+    except Exception as exc:
+        raise RuntimeError(
+            f"Could not connect to the {system_name} {prefix}. Check its URL, "
+            f"credentials, network access, and required permissions. Details: {exc}"
+        ) from exc
+
+
+def initialize_connections():
+    """Initialize per-session Groq and ERP clients, without shared caching."""
+    api_key = st.session_state.get("groq_api_key") or get_secret("GROQ_API_KEY")
+    if not api_key:
+        raise MissingRequiredSecretError(
+            "Missing required secret: GROQ_API_KEY. Add it to Streamlit secrets "
+            "or environment variables, or enter it in the AI section of the sidebar."
+        )
+
+    try:
+        llm_client = LLMClient(api_key)
+    except Exception as exc:
+        raise RuntimeError(
+            "Could not initialize Groq. Check GROQ_API_KEY and network access. "
+            f"Details: {exc}"
+        ) from exc
+
+    target_system = st.session_state.target_system
+    target_connector, target_models = _initialize_connector(target_system, "target")
+
+    source_connector = None
+    source_models = None
+    if not is_csv_source():
+        source_system = st.session_state.source_system
+        source_connector, source_models = _initialize_connector(source_system, "source")
+
+    # Keep clients and connector schemas in this browser session only. They may
+    # contain user credentials or private organization metadata.
+    st.session_state.llm_client = llm_client
+    st.session_state.target_connector = target_connector
+    st.session_state.target_models = target_models
+    st.session_state.source_connector = source_connector
+    st.session_state.source_models = source_models
     reset_source_state()
 
 
 # ── Source initialization ──────────────────────────────────────────────────
 
-def initialize_csv_source(uploaded):
-    """Lazy file connector initialization."""
-    if not uploaded:
-        raise ValueError("Upload a CSV/XLSX file first.")
+def initialize_csv_source(uploaded=None, source_path=None):
+    """Initialize a CSV/XLSX connector from memory or a bundled sample path."""
+    if uploaded is not None:
+        suffix = Path(uploaded.name).suffix.lower()
+        content = BytesIO(uploaded.getvalue())
+        try:
+            if suffix == ".csv":
+                dataframe = pd.read_csv(content)
+            elif suffix == ".xlsx":
+                dataframe = pd.read_excel(content)
+            else:
+                raise ValueError("Unsupported file format. Use CSV or XLSX.")
+        except Exception as exc:
+            raise ValueError(f"Could not read the uploaded source file: {exc}") from exc
+    elif source_path is not None:
+        dataframe = load_source_file(str(source_path))
+    else:
+        raise ValueError("Upload a CSV/XLSX file or choose the bundled sample CSV.")
 
-    file_path = write_uploaded_file(uploaded)
-    source_connector = ConnectorFactory.create("file", {"file_path": file_path})
-
+    source_connector = ConnectorFactory.create("file", {"dataframe": dataframe})
     st.session_state.source_connector = source_connector
     st.session_state.source_models = source_connector.discover_models()
 
     schema = _to_dict(source_connector.fetch_schema("uploaded_dataset"))
-
     st.session_state.source_schema = schema
     st.session_state.selected_source_schema = schema
     st.session_state.source_entity = "uploaded_dataset"
@@ -160,8 +222,14 @@ def prepare_erp_source(source_entity: str):
     is not applied because ERP fields are metadata-driven, not data-driven.
     """
     connector = st.session_state.source_connector
-    schema = _to_dict(connector.fetch_schema(source_entity))
-    samples = connector.sample_records(source_entity, limit=100)
+    try:
+        schema = _to_dict(connector.fetch_schema(source_entity))
+        samples = connector.sample_records(source_entity, limit=100)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Could not load {source_entity} from {st.session_state.source_system}. "
+            f"Check the connection and access permissions. Details: {exc}"
+        ) from exc
     analysis = analyze_source_fields(schema, samples)
 
     all_fields = list(schema.get("fields", {}).keys())
@@ -216,13 +284,19 @@ def predict_target():
         for m in st.session_state.target_models
     ]
 
-    prediction = predict_target_entity(
-        st.session_state.llm_client,
-        source_schema,
-        clean_target_models,
-        source_system=st.session_state.source_system,
-        target_system=st.session_state.target_system,
-    )
+    try:
+        prediction = predict_target_entity(
+            st.session_state.llm_client,
+            source_schema,
+            clean_target_models,
+            source_system=st.session_state.source_system,
+            target_system=st.session_state.target_system,
+        )
+    except Exception as exc:
+        raise RuntimeError(
+            "Groq could not predict a target entity. Check GROQ_API_KEY and "
+            f"network access. Details: {exc}"
+        ) from exc
 
     st.session_state.prediction = prediction
     st.session_state.target_confirmed = False
@@ -249,9 +323,16 @@ def run_compatibility_analysis():
         else st.session_state.source_schema
     )
 
-    raw_target_schema = _to_dict(
-        st.session_state.target_connector.fetch_schema(st.session_state.target_entity)
-    )
+    try:
+        raw_target_schema = _to_dict(
+            st.session_state.target_connector.fetch_schema(st.session_state.target_entity)
+        )
+    except Exception as exc:
+        raise RuntimeError(
+            f"Could not load target entity {st.session_state.target_entity} from "
+            f"{st.session_state.target_system}. Check the connection and access "
+            f"permissions. Details: {exc}"
+        ) from exc
 
     # Same-entity same-system analysis: skip the target field filter so all
     # fields appear — useful for Odoo → Odoo field completeness checks.
@@ -292,11 +373,17 @@ def run_compatibility_analysis():
         len(target_schema.get("fields", {})),
     )
 
-    compatibility = analyze_compatibility(
-        st.session_state.llm_client,
-        source_schema,
-        target_schema,
-    )
+    try:
+        compatibility = analyze_compatibility(
+            st.session_state.llm_client,
+            source_schema,
+            target_schema,
+        )
+    except Exception as exc:
+        raise RuntimeError(
+            "Compatibility analysis failed. Check that Groq and the connected "
+            f"data source are available. Details: {exc}"
+        ) from exc
 
     st.session_state.target_schema = target_schema
     st.session_state.compatibility = compatibility
@@ -323,11 +410,11 @@ def generate_pdf_report():
         "alternatives":         [],
     }
 
-    report_path = generate_report(
+    report_bytes = generate_report(
         source_schema,
         prediction,
         st.session_state.target_schema,
         st.session_state.compatibility,
     )
 
-    st.session_state.report_path = report_path
+    st.session_state.report_bytes = report_bytes

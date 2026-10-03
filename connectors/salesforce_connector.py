@@ -1,5 +1,6 @@
 import logging
 
+from compatibility_analyzer.config import get_secret
 from compatibility_analyzer.connectors.base_connector import ERPConnector
 from compatibility_analyzer.models import EntitySchema, FieldSchema
 
@@ -90,18 +91,26 @@ class SalesforceConnector(ERPConnector):
             return self.sf
 
         # ── Username / password auth ───────────────────────────────────────
-        required = ["username", "password", "security_token"]
-        missing = [k for k in required if not self.config.get(k)]
+        credentials = {
+            "username": self.config.get("username") or get_secret("SALESFORCE_USERNAME"),
+            "password": self.config.get("password") or get_secret("SALESFORCE_PASSWORD"),
+            "security_token": (
+                self.config.get("security_token")
+                or get_secret("SALESFORCE_SECURITY_TOKEN")
+            ),
+        }
+        secret_names = {
+            "username": "SALESFORCE_USERNAME",
+            "password": "SALESFORCE_PASSWORD",
+            "security_token": "SALESFORCE_SECURITY_TOKEN",
+        }
+        missing = [secret_names[key] for key, value in credentials.items() if not value]
         if missing:
             raise ValueError(
-                "Missing Salesforce credentials: " + ", ".join(missing)
+                "Missing required Salesforce credential(s): " + ", ".join(missing)
             )
 
-        kwargs = {
-            "username":       self.config["username"],
-            "password":       self.config["password"],
-            "security_token": self.config["security_token"],
-        }
+        kwargs = credentials.copy()
 
         custom_domain = (self.config.get("custom_domain") or "").strip()
 
@@ -112,7 +121,7 @@ class SalesforceConnector(ERPConnector):
             logger.debug("Salesforce auth via custom domain: %s", custom_domain)
         else:
             # Standard: "login" (Production / Developer Edition) or "test" (Sandbox)
-            domain = self.config.get("domain", "login")
+            domain = self.config.get("domain") or get_secret("SALESFORCE_DOMAIN", "login")
             kwargs["domain"] = domain
             logger.debug("Salesforce auth via domain: %s", domain)
 
